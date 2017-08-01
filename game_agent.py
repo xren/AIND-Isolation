@@ -3,8 +3,15 @@ test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
 import random
+import math
+from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
+from isolation import Board
 
 INVALID_MOVE = (-1, -1)
+MAX_DEPTH = 0
+state = {}
+total_count = 0
 
 class SearchTimeout(Exception):
     """Subclass base exception for code clarity. """
@@ -35,7 +42,66 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    return len(game.get_legal_moves(player))
+    
+    score = 0
+    offset = [-0.01, -0.02, -0.01, 0.04, -0.05, -0.02, -0.07, -0.05, 0.03, 0.09, 0.07, -0.03, 0.00, -0.02, 0.08, 0.04, 0.03, 0.02, 0.05, 0.08, 0.01, 0.07, 0.06, 0.12, 0.19, 0.03, 0.05, -0.04, 0.03, 0.07, 0.04, 0.08, 0.09, -0.02, -0.06, -0.10, -0.02, 0.11, -0.03, -0.02, -0.03, -0.07, 0.01, -0.07, -0.04, 0.04, -0.04, -0.07, -0.12]
+
+    current_move = game.get_player_location(player)
+    index = current_move[0] * 7 + current_move[1]
+    scr = custom_score_2(game, player)
+    return scr + 16 * offset[index]
+
+    
+    # h = str(game._board_state[:-3]).__hash__()
+    # if h in state:
+    #     score, count = state[h]
+    #     state[h] = (score, count+1)
+    #     return score
+    # else:
+    #     score = custom_score_2(game, player)
+    #     state[h] = (score, 1)
+    #     return score
+
+    # occupied_spaces = get_occupied_spaces(game)
+    # c_score = custom_score_2(game, player)
+    # return c_score
+    # if len(occupied_spaces) < 10:
+    #     return c_score
+
+    # d = DBSCAN(eps=2).fit(occupied_spaces)
+    # cleaned_occupied_spaces = [occupied_spaces[index] for index, el in enumerate(d.labels_) if el != -1]
+    # if len(cleaned_occupied_spaces) < 8:
+    #     return c_score
+
+    # kmeans_score = custom_score_kmeans(game, player, cleaned_occupied_spaces)
+    # # print("kick in", c_score, kmeans_score)
+
+    # return c_score * 0.9
+
+def custom_score_4(coefficient):
+    def cs_with_co(game, player):
+        return cs(game, player, coefficient)
+    return cs_with_co
+    
+
+def cached_custom_score_4(coefficient):
+    def cs_with_co(game, player):
+        h = str(game._board_state[:-3]).__hash__()
+        if h in state:
+            return state[h]
+        else:
+            score = cs(game, player, coefficient)
+            state[h] = score
+            return score
+    return cs_with_co
+
+def cs(game, player, coefficient):
+    offset = [-0.01, -0.02, -0.01, 0.04, -0.05, -0.02, -0.07, -0.05, 0.03, 0.09, 0.07, -0.03, 0.00, -0.02, 0.08, 0.04, 0.03, 0.02, 0.05, 0.08, 0.01, 0.07, 0.06, 0.12, 0.19, 0.03, 0.05, -0.04, 0.03, 0.07, 0.04, 0.08, 0.09, -0.02, -0.06, -0.10, -0.02, 0.11, -0.03, -0.02, -0.03, -0.07, 0.01, -0.07, -0.04, 0.04, -0.04, -0.07, -0.12]
+
+    current_move = game.get_player_location(player)
+    index = current_move[0] * 7 + current_move[1]
+    scr = custom_score_2(game, player)
+    return scr + coefficient * offset[index]
 
 
 def custom_score_2(game, player):
@@ -60,8 +126,15 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(own_moves - opp_moves)
 
 
 def custom_score_3(game, player):
@@ -86,8 +159,59 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    opponent_w, opponent_h = game.get_player_location(game.get_opponent(player))
+    y, x = game.get_player_location(player)
+    return float((opponent_h - y)**2 + (opponent_w - x)**2)
+
+def custom_score_center(game, player):
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    w, h = game.width / 2., game.height / 2.
+    y, x = game.get_player_location(player)
+    return float((h - y)**2 + (w - x)**2)
+
+def custom_score_kmeans(game, player, occupied_spaces):
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    w,h = KMeans(n_clusters=1, random_state=0).fit(occupied_spaces).cluster_centers_[0]
+    corner_w = 0
+    corner_h = 0
+    if w > game.width / 2:
+        corner_w = game.width
+    else:
+        corner_w = 0
+    
+    if h > game.height / 2:
+        corner_h = game.height
+    else:
+        corner_h = 0
+
+    row, column = game.get_player_location(game.get_opponent(player))
+    # if corner_h == y and corner_w == x:
+    # print("center", (w, h), "corner:", (corner_w, corner_h), "opponent_player:", (row, column))
+    # print(game.print_board())
+    return math.sqrt(float((corner_h - row)**2 + (corner_w - column)**2)) * -1
+
+
+def get_occupied_spaces(game):
+        """Return a list of the locations that are still available on the board.
+        """
+        return [[i, j] for j in range(game.width) for i in range(game.height)
+                if game._board_state[i + j * game.height] != Board.BLANK]
 
 
 class IsolationPlayer:
@@ -286,7 +410,22 @@ class AlphaBetaPlayer(IsolationPlayer):
         """
         self.time_left = time_left
 
-        best_move = INVALID_MOVE
+        legal_moves = game.get_legal_moves(self)
+        if not len(legal_moves):
+            return INVALID_MOVE
+
+        # first move
+        if not game.get_player_location(self):
+            center = math.floor(game.width / 2.), math.floor(game.height / 2.)
+            if game.move_is_legal(center):
+                return center
+            else:
+                if game.width > game.height:
+                    return center[0] + 1, center[1]
+                else:
+                    return center[0], center[1] + 1
+
+        best_move = legal_moves[0]
         depth = 1
 
         while True:
@@ -344,28 +483,35 @@ class AlphaBetaPlayer(IsolationPlayer):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
-        if len(game.get_legal_moves()) == 0:
+        if len(game.get_legal_moves(self)) == 0:
             return INVALID_MOVE
 
-        best_move = INVALID_MOVE
-        for move in game.get_legal_moves(self):
-            value, _ = self.min_value(game.forecast_move(move), depth-1, alpha, beta)
+        legal_moves = game.get_legal_moves(self)
+        best_move = legal_moves[0]
+        for move in legal_moves:
+            value, _ = self.min_value(game.forecast_move(move), 1, depth-1, alpha, beta)
             if value > alpha:
                 alpha = value
                 best_move = move
             
         return best_move
 
-    def max_value(self, game, depth, alpha, beta):
+    def max_value(self, game, current_depth, depth_left, alpha, beta):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
-        if depth == 0 or game.get_legal_moves() == 0:
+        if depth_left == 0 or not len(game.get_legal_moves()):
             return self.score(game, self), INVALID_MOVE
-
-        best_move = INVALID_MOVE
-        for move in game.get_legal_moves(self):
-            value, _ = self.min_value(game.forecast_move(move), depth-1, alpha, beta)
+        
+        # global MAX_DEPTH
+        # if current_depth > MAX_DEPTH:
+        #     MAX_DEPTH = current_depth
+        #     print(MAX_DEPTH)
+        
+        legal_moves = game.get_legal_moves()
+        best_move = legal_moves[0]
+        for move in legal_moves:
+            value, _ = self.min_value(game.forecast_move(move), current_depth+1, depth_left-1, alpha, beta)
             if value >= beta:
                 return value, move
             if value > alpha:
@@ -374,16 +520,17 @@ class AlphaBetaPlayer(IsolationPlayer):
         
         return alpha, best_move
 
-    def min_value(self, game, depth, alpha, beta):
+    def min_value(self, game, current_depth, depth_left, alpha, beta):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
-        if depth == 0 or game.get_legal_moves() == 0:
+        if depth_left == 0 or not len(game.get_legal_moves()):
             return self.score(game, self), INVALID_MOVE
 
-        best_move = INVALID_MOVE
-        for move in game.get_legal_moves(game.get_opponent(self)):
-            value, _ = self.max_value(game.forecast_move(move), depth-1, alpha, beta)
+        legal_moves = game.get_legal_moves()
+        best_move = legal_moves[0]
+        for move in legal_moves:
+            value, _ = self.max_value(game.forecast_move(move), current_depth+1, depth_left-1, alpha, beta)
             if value <= alpha:
                 return value, move
             if value < beta:
