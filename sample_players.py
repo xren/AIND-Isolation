@@ -8,7 +8,6 @@ own agent and example heuristic functions.
 
 from random import randint
 
-
 def null_score(game, player):
     """This heuristic presumes no knowledge for non-terminal states, and
     returns the same uninformative value for all other states.
@@ -97,6 +96,7 @@ def improved_score(game, player):
 
     own_moves = len(game.get_legal_moves(player))
     opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+
     return float(own_moves - opp_moves)
 
 

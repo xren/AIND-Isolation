@@ -16,12 +16,13 @@ import random
 import warnings
 
 from collections import namedtuple
+import multiprocessing as mp
 
 from isolation import Board
 from sample_players import (RandomPlayer, open_move_score,
                             improved_score, center_score)
 from game_agent import (MinimaxPlayer, AlphaBetaPlayer, custom_score,
-                        custom_score_2, custom_score_3, custom_score_4, cached_custom_score_4)
+                        custom_score_2, custom_score_3)
 
 NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
@@ -149,11 +150,10 @@ def main():
     # Define two agents to compare -- these agents will play from the same
     # starting position against the same adversaries in the tournament
     test_agents = [
-        Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved"),
-        Agent(AlphaBetaPlayer(score_fn=custom_score_4(3.8)), "AB_Custom_3.8"),
-        Agent(AlphaBetaPlayer(score_fn=custom_score_4(4)), "AB_Custom_4"),
-        Agent(AlphaBetaPlayer(score_fn=custom_score_4(4.2)), "AB_Custom_4.2"),
-        # Agent(AlphaBetaPlayer(score_fn=cached_custom_score_4(4)), "AB_Custom_cached")
+        # Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved"),
+        Agent(AlphaBetaPlayer(score_fn=custom_score), "AB_Custom")
+        # Agent(AlphaBetaPlayer(score_fn=custom_score_2), "AB_Custom_2")
+        # Agent(AlphaBetaPlayer(score_fn=custom_score_3), "AB_Custom_3")
     ]
 
     # Define a collection of agents to compete against the test agents
@@ -164,10 +164,6 @@ def main():
         # Agent(MinimaxPlayer(score_fn=improved_score), "MM_Improved"),
         # Agent(AlphaBetaPlayer(score_fn=open_move_score), "AB_Open"),
         # Agent(AlphaBetaPlayer(score_fn=center_score), "AB_Center"),
-        Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved"),
-        Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved"),
-        Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved"),
-        Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved"),
         Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved")
     ]
 
@@ -175,27 +171,7 @@ def main():
     print("{:^74}".format("*************************"))
     print("{:^74}".format("Playing Matches"))
     print("{:^74}".format("*************************"))
-
-    # for i in range(10):
-    #     print("coefficient:", 3 + i * 2 / 10)
-    #     play_matches(cpu_agents, test_agent, 10)
-
-    play_matches(cpu_agents, test_agents, 10)
-
-    # w = [el / 200. for el in winning_states]
-    # l = [el / 200. for el in losing_states]
-    # print("winning", [el / 4. for el in winning_states])        
-    # print("losing", [el / 4. for el in losing_states])      
-
-    # offset = [w[i] - l[i] for i in range(49)]  
-    # print("offset", offset)
-    # for i in range(7):
-    #     line = ''
-    #     for j in range(7):
-    #         index = i * 7 + j
-    #         line += ("{0:.2f}".format(offset[index]) + ' |')
-    #     line += '\r\n'
-    #     print(line)
+    play_matches(cpu_agents, test_agents, 200)
 
 if __name__ == "__main__":
     main()
