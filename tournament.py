@@ -16,7 +16,6 @@ import random
 import warnings
 
 from collections import namedtuple
-import multiprocessing as mp
 
 from isolation import Board
 from sample_players import (RandomPlayer, open_move_score,
@@ -26,8 +25,6 @@ from game_agent import (MinimaxPlayer, AlphaBetaPlayer, custom_score,
 
 NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
-winning_states = [0] * 49
-losing_states = [0] * 49
 
 DESCRIPTION = """
 This script evaluates the performance of the custom_score evaluation
@@ -61,12 +58,8 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
             for game in games:
                 game.apply_move(move)
 
-        count = 0
         # play all games and tally the results
         for game in games:
-            count += 1
-            # print("still running", count)
-            first_move = game._active_player
             winner, _, termination = game.play(time_limit=TIME_LIMIT)
             win_counts[winner] += 1
 
@@ -74,20 +67,6 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
                 timeout_count += 1
             elif termination == "forfeit":
                 forfeit_count += 1
-                print(game.print_board())
-
-            if winner == game._player_1:
-                for index, el in enumerate(game._board_state_stats):
-                    if el == 1:
-                        winning_states[index] += 1
-                    elif el == 2:
-                        losing_states[index] += 1
-            else:
-                for index, el in enumerate(game._board_state_stats):
-                    if el == 2:
-                        winning_states[index] += 1
-                    elif el == 1:
-                        losing_states[index] += 1
 
     return timeout_count, forfeit_count
 
@@ -150,20 +129,20 @@ def main():
     # Define two agents to compare -- these agents will play from the same
     # starting position against the same adversaries in the tournament
     test_agents = [
-        # Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved"),
-        Agent(AlphaBetaPlayer(score_fn=custom_score), "AB_Custom")
-        # Agent(AlphaBetaPlayer(score_fn=custom_score_2), "AB_Custom_2")
-        # Agent(AlphaBetaPlayer(score_fn=custom_score_3), "AB_Custom_3")
+        Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved"),
+        Agent(AlphaBetaPlayer(score_fn=custom_score), "AB_Custom"),
+        Agent(AlphaBetaPlayer(score_fn=custom_score_2), "AB_Custom_2"),
+        Agent(AlphaBetaPlayer(score_fn=custom_score_3), "AB_Custom_3")
     ]
 
     # Define a collection of agents to compete against the test agents
     cpu_agents = [
-        # Agent(RandomPlayer(), "Random"),
-        # Agent(MinimaxPlayer(score_fn=open_move_score), "MM_Open"),
-        # Agent(MinimaxPlayer(score_fn=center_score), "MM_Center"),
-        # Agent(MinimaxPlayer(score_fn=improved_score), "MM_Improved"),
-        # Agent(AlphaBetaPlayer(score_fn=open_move_score), "AB_Open"),
-        # Agent(AlphaBetaPlayer(score_fn=center_score), "AB_Center"),
+        Agent(RandomPlayer(), "Random"),
+        Agent(MinimaxPlayer(score_fn=open_move_score), "MM_Open"),
+        Agent(MinimaxPlayer(score_fn=center_score), "MM_Center"),
+        Agent(MinimaxPlayer(score_fn=improved_score), "MM_Improved"),
+        Agent(AlphaBetaPlayer(score_fn=open_move_score), "AB_Open"),
+        Agent(AlphaBetaPlayer(score_fn=center_score), "AB_Center"),
         Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved")
     ]
 
@@ -171,7 +150,8 @@ def main():
     print("{:^74}".format("*************************"))
     print("{:^74}".format("Playing Matches"))
     print("{:^74}".format("*************************"))
-    play_matches(cpu_agents, test_agents, 200)
+    play_matches(cpu_agents, test_agents, 1)
+
 
 if __name__ == "__main__":
     main()

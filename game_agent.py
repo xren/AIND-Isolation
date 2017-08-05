@@ -14,61 +14,12 @@ class SearchTimeout(Exception):
     """Subclass base exception for code clarity. """
     pass
 
-
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
-    This should be the best heuristic function for your project submission.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
-
-    Parameters
-    ----------
-    game : `isolation.Board`
-        An instance of `isolation.Board` encoding the current state of the
-        game (e.g., player locations and blocked cells).
-
-    player : object
-        A player instance in the current game (i.e., an object corresponding to
-        one of the player objects `game.__player_1__` or `game.__player_2__`.)
-
-    Returns
-    -------
-    float
-        The heuristic value of the current game state to the specified player.
-    """
-    
-    score = 0
-    offset = [-0.01, -0.02, -0.01, 0.04, -0.05, -0.02, -0.07, -0.05, 0.03, 0.09, 0.07, -0.03, 0.00, -0.02, 0.08, 0.04, 0.03, 0.02, 0.05, 0.08, 0.01, 0.07, 0.06, 0.12, 0.19, 0.03, 0.05, -0.04, 0.03, 0.07, 0.04, 0.08, 0.09, -0.02, -0.06, -0.10, -0.02, 0.11, -0.03, -0.02, -0.03, -0.07, 0.01, -0.07, -0.04, 0.04, -0.04, -0.07, -0.12]
-
-    current_move = game.get_player_location(player)
-    index = current_move[0] * 7 + current_move[1]
-    scr = custom_score_2(game, player)
-    return scr + 16 * offset[index]
-
-def custom_score(game, player):
-    offset = [
-        -0.01, -0.02, -0.01, 0.04, -0.05, -0.02, -0.07, 
-        -0.05, 0.03, 0.09, 0.07, -0.03, 0.00, -0.02, 
-        0.08, 0.04, 0.03, 0.02, 0.05, 0.08, 0.01, 
-        0.07, 0.06, 0.12, 0.19, 0.03, 0.05, -0.04, 
-        0.03, 0.07, 0.04, 0.08, 0.09, -0.02, -0.06, 
-        -0.10, -0.02, 0.11, -0.03, -0.02, -0.03, -0.07, 
-        0.01, -0.07, -0.04, 0.04, -0.04, -0.07, -0.12]
-
-    current_move = game.get_player_location(player)
-    index = current_move[0] * 7 + current_move[1]
-    scr = custom_score_2(game, player)
-    return scr + 16 * offset[index]
-
-def custom_score_2(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
+    This heuristic to designed to improve the performance of the original AB_Improved evaluation function, 
+    thus be able to search deeper in the tree.
 
     Parameters
     ----------
@@ -114,6 +65,44 @@ def custom_score_2(game, player):
 
     return float(own_moves - opp_moves)
 
+def custom_score_2(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    The hypothesis of custom score #2 is that I believe different position of 
+    the cell has different strategic value to the winning of the game. 
+    So in this heuristic, for each cell in the game, a score is computed based on the correlation of 
+    winning the game and it is then added to the result of custom score #1 heuristic for the final score.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    scores = [
+        -0.01, -0.02, -0.01, 0.04, -0.05, -0.02, -0.07, 
+        -0.05, 0.03, 0.09, 0.07, -0.03, 0.00, -0.02, 
+        0.08, 0.04, 0.03, 0.02, 0.05, 0.08, 0.01, 
+        0.07, 0.06, 0.12, 0.19, 0.03, 0.05, -0.04, 
+        0.03, 0.07, 0.04, 0.08, 0.09, -0.02, -0.06, 
+        -0.10, -0.02, 0.11, -0.03, -0.02, -0.03, -0.07, 
+        0.01, -0.07, -0.04, 0.04, -0.04, -0.07, -0.12]
+
+    current_move = game.get_player_location(player)
+    index = current_move[0] * 7 + current_move[1]
+    scr = custom_score(game, player)
+    return scr + scores[index] * 4    
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -137,45 +126,52 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    score = custom_score_2(game, player)
-    occupied_spaces = get_occupied_spaces(game)
-    d = DBSCAN(eps=2).fit(occupied_spaces)
-    occupied_spaces_without_outliers = [occupied_spaces[index] for index, el in enumerate(d.labels_) if el != -1]
-    if len(occupied_spaces_without_outliers) < 8:
-        return score
 
-    kmeans_score = custom_score_kmeans(game, player, occupied_spaces_without_outliers)
+    def kmeans(game, player, occupied_spaces):
+        """
+            This function computes density center for occupied spaces
+        """
+        if game.is_loser(player):
+            return float("-inf")
 
-    return score + kmeans_score
+        if game.is_winner(player):
+            return float("inf")
 
-def custom_score_kmeans(game, player, occupied_spaces):
-    if game.is_loser(player):
-        return float("-inf")
-
-    if game.is_winner(player):
-        return float("inf")
-
-    w,h = KMeans(n_clusters=1, random_state=0).fit(occupied_spaces).cluster_centers_[0]
-    corner_w = 0
-    corner_h = 0
-    if w > game.width / 2:
-        corner_w = game.width
-    else:
+        w,h = KMeans(n_clusters=1, random_state=0).fit(occupied_spaces).cluster_centers_[0]
         corner_w = 0
-    
-    if h > game.height / 2:
-        corner_h = game.height
-    else:
         corner_h = 0
+        if w > game.width / 2:
+            corner_w = game.width
+        else:
+            corner_w = 0
+        
+        if h > game.height / 2:
+            corner_h = game.height
+        else:
+            corner_h = 0
 
-    row, column = game.get_player_location(game.get_opponent(player))
-    return math.sqrt(float((corner_h - row)**2 + (corner_w - column)**2)) * -1
+        row, column = game.get_player_location(game.get_opponent(player))
+        return math.sqrt(float((corner_h - row)**2 + (corner_w - column)**2)) * -1
 
-def get_occupied_spaces(game):
+    def get_occupied_spaces(game):
         """Return a list of the locations that are still available on the board.
         """
         return [[i, j] for j in range(game.width) for i in range(game.height)
                 if game._board_state[i + j * game.height] != Board.BLANK]
+
+    score = custom_score(game, player)
+    occupied_spaces = get_occupied_spaces(game)
+    ## DBSCAN is used to remove the outlier moves which might skew the center significantly
+    d = DBSCAN(eps=2).fit(occupied_spaces)
+    occupied_spaces_without_outliers = [occupied_spaces[index] for index, el in enumerate(d.labels_) if el != -1]
+
+    ## A certain number of moves is required before it's able to get the density center, so in this case
+    ## I picked 8 as the minimal number of moves before k-means kick in.
+    if len(occupied_spaces_without_outliers) < 8:
+        return score
+
+    return score + kmeans(game, player, occupied_spaces_without_outliers)
+
 
 
 class IsolationPlayer:

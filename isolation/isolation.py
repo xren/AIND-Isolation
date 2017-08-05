@@ -37,9 +37,6 @@ class Board(object):
     BLANK = 0
     NOT_MOVED = None
 
-    PLAYER_1 = 1
-    PLAYER_2 = 2
-
     def __init__(self, player_1, player_2, width=7, height=7):
         self.width = width
         self.height = height
@@ -54,8 +51,6 @@ class Board(object):
         self._board_state = [Board.BLANK] * (width * height + 3)
         self._board_state[-1] = Board.NOT_MOVED
         self._board_state[-2] = Board.NOT_MOVED
-
-        self._board_state_stats = [Board.BLANK] * (width * height)
 
     def hash(self):
         return str(self._board_state).__hash__()
@@ -343,13 +338,5 @@ class Board(object):
                 return self._inactive_player, move_history, "illegal move"
 
             move_history.append(list(curr_move))
-
-            # if curr_move[0] in [3, 4] and curr_move[1] in [3, 4]:
-            #     print("move center: ", self._active_player)
-            # player = Board.PLAYER_1
-            # if self._active_player == self._player_2:
-            #     player = Board.PLAYER_2
-            # index = curr_move[0] * self.width + curr_move[1]
-            # self._board_state_stats[index] = player
 
             self.apply_move(curr_move)
