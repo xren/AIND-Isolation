@@ -2,7 +2,6 @@
 test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
-import time
 import random
 import math
 from sklearn.cluster import KMeans, DBSCAN
@@ -126,7 +125,7 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-
+    
     def kmeans(game, player, occupied_spaces):
         """
             This function computes density center for occupied spaces
@@ -171,8 +170,6 @@ def custom_score_3(game, player):
         return score
 
     return score + kmeans(game, player, occupied_spaces_without_outliers)
-
-
 
 class IsolationPlayer:
     """Base class for minimax and alphabeta agents -- this class is never
