@@ -99,3 +99,4 @@ ENV/
 isolation-*.zip
 isolation-result-*.json
 log.txt
+.DS_Store
